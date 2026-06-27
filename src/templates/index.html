@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCA Image Compressor - Minimalist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #334155; }
+        .custom-shadow { box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08); }
+        .image-container { background-image: radial-gradient(#e2e8f0 1px, transparent 1px); background-size: 20px 20px; }
+        input[type=range] { accent-color: #4f46e5; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <div class="mb-8 border-b border-slate-200 pb-4">
+            <h1 class="text-3xl font-bold text-slate-800 tracking-tight">PCA Image Compression</h1>
+            <p class="text-slate-500 mt-1">Aljabar Linear Project - Dimensi Reduksi & Pemrosesan Citra</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-4 space-y-6">
+                
+                <div class="bg-white p-6 rounded-2xl custom-shadow border border-slate-100">
+                    <h2 class="font-semibold text-slate-800 mb-4 text-lg">⚙️ Panel Kontrol</h2>
+                    
+                    <div class="mb-5">
+                        <label class="block text-sm font-medium text-slate-600 mb-2">1. Unggah Citra</label>
+                        <input type="file" id="fileInput" accept="image/*" class="hidden">
+                        <button onclick="document.getElementById('fileInput').click()" class="w-full border-2 border-dashed border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium py-3 rounded-xl transition flex justify-center items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            Pilih File Gambar
+                        </button>
+                    </div>
+
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-sm font-medium text-slate-600">2. Komponen Utama (K)</label>
+                            <span id="kValueDisplay" class="bg-indigo-100 text-indigo-700 font-bold px-3 py-1 rounded-full text-sm">50</span>
+                        </div>
+                        <input type="range" id="kSlider" min="1" max="250" value="50" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                        <p class="text-xs text-slate-400 mt-2 text-center">Atur nilai K untuk menyesuaikan kualitas matriks.</p>
+                    </div>
+
+                    <button id="processBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                        Mulai Komputasi PCA
+                    </button>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl custom-shadow border border-slate-100">
+                    <h2 class="font-semibold text-slate-800 mb-4 text-lg">📊 Hasil Analisis</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <p class="text-xs text-slate-500 mb-1">Selisih Ukuran</p>
+                            <p class="font-bold text-slate-800 text-lg" id="statSavedPct">0%</p>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <p class="text-xs text-slate-500 mb-1">Ruang Dihemat</p>
+                            <p class="font-bold text-emerald-600 text-lg"><span id="statSavedKb">0</span> KB</p>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <p class="text-xs text-slate-500 mb-1">Waktu Eksekusi</p>
+                            <p class="font-bold text-slate-800 text-lg"><span id="statTime">0</span> ms</p>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <p class="text-xs text-slate-500 mb-1">Perbedaan Pixel</p>
+                            <p class="font-bold text-indigo-600 text-lg" id="statDiff">0%</p>
+                        </div>
+                    </div>
+
+                    <a id="downloadBtn" href="#" download="pca_result.jpg" class="mt-4 block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-center py-3 rounded-xl font-medium transition opacity-50 pointer-events-none">
+                        Unduh Hasil Kompresi
+                    </a>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8 bg-white p-6 rounded-2xl custom-shadow border border-slate-100 flex flex-col">
+                <h2 class="font-semibold text-slate-800 mb-4 text-lg"> Perbandingan Visual</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                    
+                    <div class="flex flex-col h-full">
+                        <div class="flex justify-between items-center mb-2 px-1">
+                            <span class="text-sm font-semibold text-slate-700">Gambar Asli</span>
+                            <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded" id="origSizeLabel">0 KB</span>
+                        </div>
+                        <div class="image-container bg-slate-50 flex-1 rounded-xl border border-slate-200 flex items-center justify-center p-2 overflow-hidden min-h-[300px]">
+                            <img id="imgBefore" src="" alt="Asli" style="display: none;" class="max-w-full max-h-[400px] object-contain rounded shadow-sm">
+                            <span id="placeholderBefore" class="text-slate-400 text-sm">Belum ada gambar</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col h-full">
+                        <div class="flex justify-between items-center mb-2 px-1">
+                            <span class="text-sm font-semibold text-indigo-700">Hasil PCA</span>
+                            <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded" id="compSizeLabel">0 KB</span>
+                        </div>
+                        <div class="image-container bg-slate-50 flex-1 rounded-xl border border-slate-200 flex items-center justify-center p-2 overflow-hidden min-h-[300px]">
+                            <img id="imgAfter" src="" alt="Hasil PCA" style="display: none;" class="max-w-full max-h-[400px] object-contain rounded shadow-sm">
+                            <span id="placeholderAfter" class="text-slate-400 text-sm">Menunggu proses...</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const slider = document.getElementById('kSlider');
+        const kValueDisplay = document.getElementById('kValueDisplay');
+        const fileInput = document.getElementById('fileInput');
+        const imgBefore = document.getElementById('imgBefore');
+        
+        slider.addEventListener('input', (e) => {
+            kValueDisplay.innerText = e.target.value;
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            if(this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imgBefore.src = e.target.result;
+                    imgBefore.style.display = 'block';
+                    document.getElementById('placeholderBefore').style.display = 'none';
+                    
+                    // Reset kolom hasil saat gambar baru dipilih
+                    document.getElementById('imgAfter').style.display = 'none';
+                    document.getElementById('placeholderAfter').style.display = 'block';
+                    document.getElementById('placeholderAfter').innerText = "Siap diproses...";
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        document.getElementById('processBtn').addEventListener('click', async () => {
+            if(!fileInput.files[0]) {
+                alert('Silakan pilih gambar terlebih dahulu!');
+                return;
+            }
+
+            const btn = document.getElementById('processBtn');
+            btn.innerHTML = 'Memproses Matriks...';
+            btn.classList.add('opacity-75', 'cursor-wait');
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('k_value', slider.value);
+
+            try {
+                const response = await fetch('/compress', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if(data.error) {
+                    alert(data.error);
+                } else {
+                    const imgAfter = document.getElementById('imgAfter');
+                    imgAfter.src = data.compressed_url;
+                    imgAfter.style.display = 'block';
+                    document.getElementById('placeholderAfter').style.display = 'none';
+
+                    document.getElementById('origSizeLabel').innerText = data.orig_size + ' KB';
+                    document.getElementById('compSizeLabel').innerText = data.comp_size + ' KB';
+                    document.getElementById('statDiff').innerText = data.pixel_diff + '%';
+                    document.getElementById('statTime').innerText = data.runtime_ms;
+                    document.getElementById('statSavedPct').innerText = data.size_saved_percent + '%';
+                    document.getElementById('statSavedKb').innerText = data.size_saved_kb;
+
+                    const downloadBtn = document.getElementById('downloadBtn');
+                    downloadBtn.href = data.compressed_url;
+                    downloadBtn.classList.remove('opacity-50', 'pointer-events-none');
+                }
+            } catch (error) {
+                alert('Terjadi kesalahan komputasi server.');
+            } finally {
+                btn.innerHTML = 'Mulai Komputasi PCA';
+                btn.classList.remove('opacity-75', 'cursor-wait');
+            }
+        });
+    </script>
+</body>
+</html>
