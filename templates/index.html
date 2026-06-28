@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCA Image Compressor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e1a;
+            --bg-2: #0d1220;
+            --ink: #ffffff;
+            --ink-2: rgba(255,255,255,.7);
+            --ink-3: rgba(255,255,255,.5);
+            --ink-4: rgba(255,255,255,.3);
+            --line: rgba(255,255,255,.1);
+            --line-2: rgba(255,255,255,.06);
+            --glass-bg: linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+            --glass-border: rgba(255,255,255,.1);
+            --glass-blur: blur(40px);
+            --indigo: #6366f1;
+            --indigo-soft: #a5b4fc;
+            --pink: #ec4899;
+            --cyan: #22d3ee;
+            --green: #4ade80;
+            --amber: #fbbf24;
+            --grad-a: linear-gradient(135deg,#fff 0%,#a5b4fc 50%,#ec4899 100%);
+            --grad-b: linear-gradient(135deg,#6366f1,#ec4899);
+            --font-sans: 'Space Grotesk', sans-serif;
+            --font-body: 'DM Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --r-sm: 10px;
+            --r-md: 16px;
+            --r-lg: 22px;
+            --r-xl: 28px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: var(--font-sans);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        /* Ambient background */
+        .deck::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 15% 20%, rgba(99,102,241,.22) 0%, transparent 50%),
+                radial-gradient(circle at 85% 80%, rgba(236,72,153,.15) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(34,211,238,.08) 0%, transparent 60%);
+            z-index: 0;
+            animation: ambient 14s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+
+        @keyframes ambient {
+            to {
+                opacity: .7;
+                transform: scale(1.05);
+            }
+        }
+
+        .deck::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+            background-size: 64px 64px;
+            mask-image: radial-gradient(ellipse at center, black 25%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 80%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .deck {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .9s cubic-bezier(0.77,0,0.175,1), visibility .9s;
+            z-index: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transition-delay: .4s;
+        }
+
+        .slide-inner {
+            min-height: 100%;
+            padding: 90px 6vmin 80px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Brand */
+        .brand {
+            position: fixed;
+            top: 28px;
+            left: 32px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: -.01em;
+        }
+
+        .brand .logo {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: var(--grad-b);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .brand .logo::after {
+            content: '';
+            position: absolute;
+            inset: 5px;
+            background: var(--bg);
+            border-radius: 4px;
+        }
+
+        /* Date display */
+        .date-display {
+            position: fixed;
+            top: 28px;
+            right: 32px;
+            z-index: 100;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            letter-spacing: .15em;
+            color: var(--ink-2);
+            background: rgba(255,255,255,.08);
+            border: 1px solid var(--glass-border);
+            padding: 8px 18px;
+            border-radius: 100px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .date-display .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green);
+            animation: pip 2s infinite;
+        }
+
+        @keyframes pip {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .3; }
+        }
+
+        /* Glass card */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--r-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Main content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 6vmin;
+            flex: 1;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .slide-inner {
+                padding: 72px 18px 24px;
+            }
+            .brand {
+                top: 18px;
+                left: 18px;
+                font-size: 14px;
+            }
+            .brand .logo {
+                width: 24px;
+                height: 24px;
+            }
+            .date-display {
+                top: 16px;
+                right: 16px;
+                font-size: 10px;
+                padding: 6px 14px;
+            }
+        }
+
+        /* Control Panel */
+        .control-panel {
+            padding: 28px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .panel-title {
+            font-family: var(--font-sans);
+            font-weight: 500;
+            font-size: 20px;
+            letter-spacing: -.01em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title .icon {
+            color: var(--indigo-soft);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-family: var(--font-body);
+            font-size: 13px;
+            color: var(--ink-2);
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-label .badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--indigo-soft);
+            background: rgba(99,102,241,.15);
+            padding: 4px 12px;
+            border-radius: 100px;
+        }
+
+        /* File upload */
+        .file-upload {
+            border: 2px dashed rgba(99,102,241,.3);
+            background: rgba(99,102,241,.05);
+            border-radius: var(--r-md);
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all .3s;
+            position: relative;
+        }
+
+        .file-upload:hover {
+            border-color: var(--indigo);
+            background: rgba(99,102,241,.1);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload .upload-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+            display: block;
+            color: var(--indigo-soft);
+        }
+
+        .file-upload .upload-text {
+            font-family: var(--font-body);
+            font-size: 14px;
+            color: var(--ink-2);
+            font-weight: 500;
+        }
+
+        .file-upload .upload-sub {
+            font-family: var(--font-body);
+            font-size: 12px;
+            color: var(--ink-3);
+            margin-top: 4px;
+        }
+
+        /* Slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+            background: var(--line);
+            transition: background .2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--indigo);
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(99,102,241,.3);
+            transition: all .2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--indigo);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 20px rgba(99,102,241,.3);
+        }
+
+        .slider-value {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            color: var(--indigo-soft);
+            font-weight: 500;
+            text-align: center;
+            padding: 4px 0;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: #fff;
+            color: var(--bg);
+            padding: 14px 28px;
+            border-radius: 100px;
+            font-family: var(--font-body);
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all .3s;
+            border: none;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--indigo-soft), #fff);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(165,180,252,.25);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-success {
+            background: var(--green);
+            color: var(--bg);
+            padding: 14px 28px;
+            border-radius: 100px;
+            font-family: var(--font-body);
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all .3s;
+            border: none;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(74,222,128,.25);
+        }
+
+        .btn-success:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,.03);
+            border: 1px solid var(--line-2);
+            border-radius: var(--r-md);
+            padding: 16px 18px;
+            transition: all .3s;
+        }
+
+        .stat-item:hover {
+            background: rgba(255,255,255,.06);
+            border-color: var(--line);
+        }
+
+        .stat-item .stat-label {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 6px;
+        }
+
+        .stat-item .stat-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            color: #ffffff;
+            line-height: 1.2;
+        }
+
+        .stat-item .stat-value.accent {
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .stat-item .stat-value.green {
+            color: #4ade80;
+        }
+
+        .stat-item .stat-value .unit {
+            font-size: 0.5em;
+            font-weight: 400;
+            color: rgba(255,255,255,0.4);
+            margin-left: 2px;
+        }
+
+        /* Image comparison */
+        .image-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            flex: 1;
+        }
+
+        @media (max-width: 640px) {
+            .image-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .image-box {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .image-box .image-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 2px;
+        }
+
+        .image-box .image-header .title {
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .image-box .image-header .size {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--ink-3);
+            background: rgba(255,255,255,.06);
+            padding: 4px 12px;
+            border-radius: 100px;
+        }
+
+        .image-box .image-header .size.original {
+            color: var(--ink-3);
+        }
+
+        .image-box .image-header .size.compressed {
+            color: var(--green);
+        }
+
+        .image-container {
+            background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-color: rgba(255,255,255,.02);
+            flex: 1;
+            border-radius: var(--r-md);
+            border: 1px solid var(--line-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            min-height: 280px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .image-container .placeholder {
+            font-family: var(--font-body);
+            font-size: 14px;
+            color: var(--ink-3);
+            text-align: center;
+        }
+
+        .image-container .placeholder .emoji {
+            display: block;
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        /* Eyebrow tag */
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            background: rgba(99,102,241,.12);
+            border: 1px solid rgba(99,102,241,.3);
+            padding: 7px 16px;
+            border-radius: 100px;
+            font-family: var(--font-body);
+            font-size: 12px;
+            color: var(--indigo-soft);
+            width: fit-content;
+            letter-spacing: .02em;
+            margin-bottom: 16px;
+        }
+
+        .eyebrow .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--indigo);
+            box-shadow: 0 0 10px var(--indigo);
+            animation: pip 2s infinite;
+        }
+
+        .h-display {
+            font-family: var(--font-sans);
+            font-weight: 500;
+            line-height: 1.02;
+            letter-spacing: -.035em;
+        }
+
+        .h-display .grd {
+            background: var(--grad-a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .body-lg {
+            font-family: var(--font-body);
+            font-size: clamp(15px, 1.4vw, 18px);
+            line-height: 1.6;
+            color: var(--ink-2);
+            font-weight: 400;
+        }
+
+        /* Footer */
+        .section-tag {
+            position: fixed;
+            bottom: 28px;
+            left: 32px;
+            z-index: 100;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: .25em;
+            text-transform: uppercase;
+            color: var(--ink-3);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .section-tag .pip {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--indigo-soft);
+            box-shadow: 0 0 10px var(--indigo);
+            animation: pip 2s infinite;
+        }
+
+        .tm-credit {
+            position: fixed;
+            bottom: 28px;
+            right: 32px;
+            z-index: 100;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: .25em;
+            text-transform: uppercase;
+            color: var(--ink-3);
+            text-decoration: none;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            transition: color .25s;
+        }
+
+        .tm-credit:hover {
+            color: var(--ink);
+        }
+
+        .tm-credit .tm-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--pink);
+            box-shadow: 0 0 10px var(--pink);
+            animation: pip 2s infinite;
+        }
+
+        /* Footer info - ENLARGED */
+        .footer-info {
+            border-top: 1px solid var(--line-2);
+            padding-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .footer-info .left {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: var(--ink-2);
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .footer-info .left .highlight {
+            color: var(--indigo-soft);
+            font-weight: 600;
+        }
+
+        .footer-info .right {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            color: var(--ink-2);
+            letter-spacing: .1em;
+            background: rgba(255,255,255,.06);
+            padding: 6px 16px;
+            border-radius: 100px;
+            border: 1px solid var(--line-2);
+            font-weight: 500;
+        }
+
+        .footer-info .right .k-value {
+            color: var(--indigo-soft);
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        /* Scrollbar */
+        .slide {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(165,180,252,.25) transparent;
+        }
+
+        .slide::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .slide::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .slide::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(165,180,252,.3), rgba(236,72,153,.25));
+            border-radius: 100px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        .slide::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(165,180,252,.55), rgba(236,72,153,.5));
+            background-clip: padding-box;
+            border: 2px solid transparent;
+        }
+
+        /* Responsive fixes */
+        @media (max-width: 640px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .control-panel {
+                padding: 20px;
+            }
+            .image-container {
+                min-height: 200px;
+            }
+            .stat-item .stat-value {
+                font-size: 20px;
+            }
+            .footer-info .left {
+                font-size: 11px;
+            }
+            .footer-info .right {
+                font-size: 12px;
+                padding: 4px 12px;
+            }
+            .footer-info .right .k-value {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="brand">
+    <span class="logo"></span> PCA Compressor
+</div>
+
+<!-- DATE DISPLAY -->
+<div class="date-display" id="dateDisplay">
+    <span class="dot"></span>
+    <span id="currentDate">Loading...</span>
+</div>
+
+<div class="section-tag"><span class="pip"></span><span>Image Compression</span></div>
+
+<a class="tm-credit" href="#" target="_blank" rel="nofollow noopener">
+    <span class="tm-dot"></span><span class="tm-label">PCA &bull; Aljabar Linear</span>
+</a>
+
+<div class="deck" id="deck">
+
+    <section class="slide active">
+        <div class="slide-inner">
+
+            <div style="margin-bottom: 32px;">
+                <div class="eyebrow"><span class="dot"></span>Dimensi Reduksi &amp; Pemrosesan Citra</div>
+                <h1 class="h-display" style="font-size: clamp(32px, 4vw, 52px);">
+                    PCA <span class="grd">Image Compression</span>
+                </h1>
+                <p class="body-lg" style="margin-top: 8px; max-width: 600px;">
+                    Perkecil ukuran gambar secara efisien tanpa mengurangi kualitas visual
+                </p>
+            </div>
+
+            <div class="main-content">
+
+                <!-- Left: Control Panel -->
+                <div class="glass-card control-panel">
+                    <div class="panel-title">
+                        <span class="icon">⚙️</span> Panel Kontrol
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>1. Unggah Citra</span>
+                            <span class="badge" id="fileStatus">Belum ada</span>
+                        </div>
+                        <div class="file-upload" id="uploadArea">
+                            <input type="file" id="fileInput" accept="image/*">
+                            <span class="upload-icon">📸</span>
+                            <span class="upload-text">Pilih File Gambar</span>
+                            <span class="upload-sub">Drag &amp; drop atau klik untuk memilih</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>2. Komponen Utama (K)</span>
+                            <span class="badge" id="kValueDisplay">50</span>
+                        </div>
+                        <input type="range" id="kSlider" min="1" max="250" value="50">
+                        <div class="slider-value" id="sliderValue">50</div>
+                    </div>
+
+                    <button class="btn-primary" id="processBtn">
+                        <span>▶</span> Mulai Komputasi PCA
+                    </button>
+
+                    <div style="border-top: 1px solid var(--line-2); padding-top: 20px;">
+                        <div class="control-label" style="margin-bottom: 12px;">
+                            <span>📊 Hasil Analisis</span>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">Selisih Ukuran</div>
+                                <div class="stat-value accent" id="statSavedPct">0%</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Ruang Dihemat</div>
+                                <div class="stat-value green" id="statSavedKb">0 KB</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Waktu Eksekusi</div>
+                                <div class="stat-value" id="statTime">0 <span class="unit">ms</span></div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Perbedaan Pixel</div>
+                                <div class="stat-value accent" id="statDiff">0%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-success" id="downloadBtn" disabled>
+                        <span>⬇</span> Unduh Hasil Kompresi
+                    </button>
+                </div>
+
+                <!-- Right: Image Comparison -->
+                <div class="glass-card" style="padding: 28px 30px; display: flex; flex-direction: column; gap: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-family: var(--font-sans); font-weight: 500; font-size: 18px; letter-spacing: -.01em;">
+                            🖼 Perbandingan Visual
+                        </span>
+                    </div>
+
+                    <div class="image-grid">
+                        <div class="image-box">
+                            <div class="image-header">
+                                <span class="title">Gambar Asli</span>
+                                <span class="size original" id="origSizeLabel">0 KB</span>
+                            </div>
+                            <div class="image-container">
+                                <img id="imgBefore" src="" alt="Asli">
+                                <span class="placeholder" id="placeholderBefore">
+                                    <span class="emoji">🖼</span>
+                                    Belum ada gambar
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="image-box">
+                            <div class="image-header">
+                                <span class="title" style="color: var(--indigo-soft);">Hasil PCA</span>
+                                <span class="size compressed" id="compSizeLabel">0 KB</span>
+                            </div>
+                            <div class="image-container">
+                                <img id="imgAfter" src="" alt="Hasil PCA">
+                                <span class="placeholder" id="placeholderAfter">
+                                    <span class="emoji">⏳</span>
+                                    Menunggu proses...
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ENLARGED FOOTER -->
+                    <div class="footer-info">
+                        <div class="left">
+                            <span class="highlight"></span> 
+                        </div>
+                        <div class="right">
+                            K = <span class="k-value" id="footerK">50</span> komponen
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+<script>
+    // === DISPLAY TODAY'S DATE ===
+    function updateDate() {
+        const now = new Date();
+        const options = { 
+            weekday: 'short', 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+        };
+        const dateStr = now.toLocaleDateString('id-ID', options);
+        document.getElementById('currentDate').textContent = dateStr;
+    }
+    
+    updateDate();
+    setInterval(updateDate, 60000);
+
+    // === ELEMENTS ===
+    const slider = document.getElementById('kSlider');
+    const kValueDisplay = document.getElementById('kValueDisplay');
+    const sliderValue = document.getElementById('sliderValue');
+    const fileInput = document.getElementById('fileInput');
+    const uploadArea = document.getElementById('uploadArea');
+    const imgBefore = document.getElementById('imgBefore');
+    const imgAfter = document.getElementById('imgAfter');
+    const placeholderBefore = document.getElementById('placeholderBefore');
+    const placeholderAfter = document.getElementById('placeholderAfter');
+    const processBtn = document.getElementById('processBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const fileStatus = document.getElementById('fileStatus');
+    const origSizeLabel = document.getElementById('origSizeLabel');
+    const compSizeLabel = document.getElementById('compSizeLabel');
+    const statSavedPct = document.getElementById('statSavedPct');
+    const statSavedKb = document.getElementById('statSavedKb');
+    const statTime = document.getElementById('statTime');
+    const statDiff = document.getElementById('statDiff');
+    const footerK = document.getElementById('footerK');
+
+    let currentFile = null;
+
+    // === SLIDER ===
+    slider.addEventListener('input', () => {
+        const val = slider.value;
+        kValueDisplay.textContent = val;
+        sliderValue.textContent = val;
+        footerK.textContent = val;
+    });
+
+    // === FILE UPLOAD ===
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = '#a5b4fc';
+        uploadArea.style.background = 'rgba(99,102,241,.15)';
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.borderColor = 'rgba(99,102,241,.3)';
+        uploadArea.style.background = 'rgba(99,102,241,.05)';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'rgba(99,102,241,.3)';
+        uploadArea.style.background = 'rgba(99,102,241,.05)';
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+        }
+    });
+
+    function handleFile(file) {
+        currentFile = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imgBefore.src = e.target.result;
+            imgBefore.style.display = 'block';
+            placeholderBefore.style.display = 'none';
+            fileStatus.textContent = file.name;
+
+            imgAfter.style.display = 'none';
+            placeholderAfter.style.display = 'block';
+            placeholderAfter.innerHTML = '<span class="emoji">⏳</span> Siap diproses...';
+            compSizeLabel.textContent = '0 KB';
+            downloadBtn.disabled = true;
+
+            statSavedPct.textContent = '0%';
+            statSavedKb.textContent = '0 KB';
+            statTime.innerHTML = '0 <span class="unit">ms</span>';
+            statDiff.textContent = '0%';
+
+            origSizeLabel.textContent = (file.size / 1024).toFixed(1) + ' KB';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // === PROCESS ===
+    processBtn.addEventListener('click', async () => {
+        if (!currentFile) {
+            alert('Silakan pilih gambar terlebih dahulu!');
+            return;
+        }
+
+        processBtn.disabled = true;
+        processBtn.innerHTML = '<span>⏳</span> Memproses Matriks...';
+
+        const formData = new FormData();
+        formData.append('file', currentFile);
+        formData.append('k_value', slider.value);
+
+        try {
+            const startTime = performance.now();
+            const response = await fetch('/compress', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            const endTime = performance.now();
+
+            if (data.error) {
+                alert(data.error);
+            } else {
+                imgAfter.src = data.compressed_url;
+                imgAfter.style.display = 'block';
+                placeholderAfter.style.display = 'none';
+
+                compSizeLabel.textContent = data.comp_size + ' KB';
+                statDiff.textContent = data.pixel_diff + '%';
+                statTime.innerHTML = Math.round(endTime - startTime) + ' <span class="unit">ms</span>';
+                statSavedPct.textContent = data.size_saved_percent + '%';
+                statSavedKb.textContent = data.size_saved_kb;
+
+                downloadBtn.disabled = false;
+                downloadBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = data.compressed_url;
+                    a.download = 'pca_result.jpg';
+                    a.click();
+                };
+            }
+        } catch (error) {
+            alert('Terjadi kesalahan komputasi server.');
+        } finally {
+            processBtn.disabled = false;
+            processBtn.innerHTML = '<span>▶</span> Mulai Komputasi PCA';
+        }
+    });
+</script>
+
+</body>
+</html>
