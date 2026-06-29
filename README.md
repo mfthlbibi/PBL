@@ -9,7 +9,9 @@ Repositori ini berisi aplikasi web interaktif untuk **Kompresi Citra** berbasis 
 
 Proyek ini dikembangkan sebagai bagian dari **Project Based Learning (PBL)** untuk mata kuliah **Aljabar Linear** di Program Studi Informatika, Universitas Sebelas Maret.
 
-### Cara Kerja Program
+---
+
+## Cara Kerja Program
 
 1. **Pemisahan Channel Warna:** Gambar RGB yang diunggah diekstraksi ke dalam 3 matriks channel terpisah (Red, Green, Blue).
 
