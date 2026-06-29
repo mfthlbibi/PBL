@@ -114,76 +114,10 @@
 
         .slide-inner {
             min-height: 100%;
-            padding: 90px 6vmin 80px;
+            padding: 30px 6vmin 80px;
             display: flex;
             flex-direction: column;
             position: relative;
-        }
-
-        /* Brand */
-        .brand {
-            position: fixed;
-            top: 28px;
-            left: 32px;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            gap: 11px;
-            font-weight: 600;
-            font-size: 16px;
-            letter-spacing: -.01em;
-        }
-
-        .brand .logo {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            background: var(--grad-b);
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        .brand .logo::after {
-            content: '';
-            position: absolute;
-            inset: 5px;
-            background: var(--bg);
-            border-radius: 4px;
-        }
-
-        /* Date display */
-        .date-display {
-            position: fixed;
-            top: 28px;
-            right: 32px;
-            z-index: 100;
-            font-family: var(--font-mono);
-            font-size: 12px;
-            letter-spacing: .15em;
-            color: var(--ink-2);
-            background: rgba(255,255,255,.08);
-            border: 1px solid var(--glass-border);
-            padding: 8px 18px;
-            border-radius: 100px;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .date-display .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--green);
-            box-shadow: 0 0 10px var(--green);
-            animation: pip 2s infinite;
-        }
-
-        @keyframes pip {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .3; }
         }
 
         /* Glass card */
@@ -216,21 +150,6 @@
         @media (max-width: 640px) {
             .slide-inner {
                 padding: 72px 18px 24px;
-            }
-            .brand {
-                top: 18px;
-                left: 18px;
-                font-size: 14px;
-            }
-            .brand .logo {
-                width: 24px;
-                height: 24px;
-            }
-            .date-display {
-                top: 16px;
-                right: 16px;
-                font-size: 10px;
-                padding: 6px 14px;
             }
         }
 
@@ -625,6 +544,78 @@
             font-weight: 400;
         }
 
+        /* ============================================ */
+        /* HEADER META - ENLARGED FONTS */
+        /* ============================================ */
+        .header-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--line-2);
+        }
+
+        .header-meta .brand-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-sans);
+            font-size: 24px;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: -.02em;
+        }
+
+        .header-meta .brand-header .logo-sm {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            background: var(--grad-b);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .header-meta .brand-header .logo-sm::after {
+            content: '';
+            position: absolute;
+            inset: 5px;
+            background: var(--bg);
+            border-radius: 4px;
+        }
+
+        .header-meta .brand-header .accent {
+            background: var(--grad-a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .header-meta .date-header {
+            font-family: var(--font-sans);
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--ink-2);
+            letter-spacing: .02em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-meta .date-header .dot-sm {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 14px var(--green);
+            animation: pip 2s infinite;
+        }
+
+        @keyframes pip {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .3; }
+        }
+
         /* Footer */
         .section-tag {
             position: fixed;
@@ -776,35 +767,48 @@
             .footer-info .right .k-value {
                 font-size: 14px;
             }
+            .header-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .header-meta .brand-header {
+                font-size: 17px;
+            }
+            .header-meta .brand-header .logo-sm {
+                width: 24px;
+                height: 24px;
+            }
+            .header-meta .date-header {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="brand">
-    <span class="logo"></span> PCA Compressor
-</div>
 
-<!-- DATE DISPLAY -->
-<div class="date-display" id="dateDisplay">
-    <span class="dot"></span>
-    <span id="currentDate">Loading...</span>
-</div>
-
-<div class="section-tag"><span class="pip"></span><span>Image Compression</span></div>
-
-<a class="tm-credit" href="#" target="_blank" rel="nofollow noopener">
-    <span class="tm-dot"></span><span class="tm-label">PCA &bull; Aljabar Linear</span>
-</a>
 
 <div class="deck" id="deck">
 
     <section class="slide active">
         <div class="slide-inner">
 
+            <!-- HEADER with enlarged fonts -->
+            <div class="header-meta">
+                <div class="brand-header">
+                    <span class="logo-sm"></span> 
+                    <span>PCA <span class="accent">Compressor</span></span>
+                </div>
+                <div class="date-header" id="dateDisplay">
+                    <span class="dot-sm"></span>
+                    <span id="currentDate">Loading...</span>
+                </div>
+            </div>
+
             <div style="margin-bottom: 32px;">
-                <div class="eyebrow"><span class="dot"></span>Dimensi Reduksi &amp; Pemrosesan Citra</div>
-                <h1 class="h-display" style="font-size: clamp(32px, 4vw, 52px);">
+                <div class="eyebrow"><span class="dot"></span>Dimensi Reduksi &amp; Pemrosesan Gambar</div>
+                <h1 class="h-display" style="font-size: clamp(24px, 4vw, 48px);">
                     PCA <span class="grd">Image Compression</span>
                 </h1>
                 <p class="body-lg" style="margin-top: 8px; max-width: 600px;">
@@ -822,7 +826,7 @@
 
                     <div class="control-group">
                         <div class="control-label">
-                            <span>1. Unggah Citra</span>
+                            <span>Unggah Gambar</span>
                             <span class="badge" id="fileStatus">Belum ada</span>
                         </div>
                         <div class="file-upload" id="uploadArea">
@@ -835,7 +839,7 @@
 
                     <div class="control-group">
                         <div class="control-label">
-                            <span>2. Komponen Utama (K)</span>
+                            <span>Komponen Utama (K)</span>
                             <span class="badge" id="kValueDisplay">50</span>
                         </div>
                         <input type="range" id="kSlider" min="1" max="250" value="50">
